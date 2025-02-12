@@ -12,6 +12,12 @@ import { getGpuRecommendation, GPU_OPTIONS, GPU_SPECS } from "@/utils/gpuRecomme
 import { getAIGpuRecommendation } from "@/utils/aiRecommendation"
 import type { GpuRecommendation, ModelParams } from "@/types/gpuTypes"
 import { commonModels } from "@/data/commonModels"
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip"
 
 export default function GpuRecommender() {
   const [modelParams, setModelParams] = useState<ModelParams>({
@@ -133,7 +139,7 @@ export default function GpuRecommender() {
                       strokeLinecap="round" 
                       strokeLinejoin="round" 
                       strokeWidth={2} 
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM9 9h6v6H9V9z"
                     />
                   </svg>
                 </div>
@@ -358,7 +364,69 @@ export default function GpuRecommender() {
             </CardContent>
           </Card>
 
-          {showResult && recommendation && (
+          {loading ? (
+            <Card className="relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardContent className="flex flex-col items-center justify-center py-16 space-y-6">
+                <div className="animate-pulse">
+                  <svg 
+                    className="w-16 h-16 text-blue-500 dark:text-blue-400 animate-spin" 
+                    fill="none" 
+                    viewBox="0 0 24 24"
+                  >
+                    <circle 
+                      className="opacity-25" 
+                      cx="12" 
+                      cy="12" 
+                      r="10" 
+                      stroke="currentColor" 
+                      strokeWidth="4"
+                    />
+                    <path 
+                      className="opacity-75" 
+                      fill="currentColor" 
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    正在为您生成 GPU 推荐方案
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    请稍候，我们正在分析您的需求并推荐最佳 GPU 配置
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : !recommendation ? (
+            <Card className="relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <CardContent className="flex flex-col items-center justify-center py-16 space-y-6">
+                <div className="p-6 rounded-full bg-blue-50 dark:bg-blue-950/50">
+                  <svg 
+                    className="w-16 h-16 text-blue-500 dark:text-blue-400" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={1.5} 
+                      d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-center space-y-2">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    GPU 推荐助手
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md text-center">
+                    填写您的深度学习或 AI 训练需求，点击"获取 GPU 推荐"，我们将为您推荐最适合的 GPU 配置
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <Card className="relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
               {/* 推荐来源标签 */}
               <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold ${
@@ -383,7 +451,7 @@ export default function GpuRecommender() {
                           strokeLinecap="round" 
                           strokeLinejoin="round" 
                           strokeWidth={2} 
-                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
                         />
                       </svg>
                     </div>
@@ -391,11 +459,68 @@ export default function GpuRecommender() {
                       <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
                         {recommendation.model}
                       </CardTitle>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        {recommendation.isAIGenerated 
-                          ? 'AI 智能推荐' 
-                          : '基于规则的推荐'}
-                      </p>
+                      <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center space-x-1">
+                        <span>
+                          {recommendation.isAIGenerated 
+                            ? 'AI 智能推荐' 
+                            : '基于规则的推荐'}
+                        </span>
+                        <TooltipProvider>
+                          <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <svg 
+                                className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  strokeWidth={2} 
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                                />
+                              </svg>
+                            </TooltipTrigger>
+                            <TooltipContent 
+                              side="bottom" 
+                              align="start"
+                              className="bg-white border border-slate-200 text-slate-900 dark:bg-slate-900 dark:border-slate-700 dark:text-white max-w-xs p-3 rounded-lg shadow-lg z-50"
+                            >
+                              {recommendation.isAIGenerated ? (
+                                <>
+                                  <div className="font-semibold text-sm mb-2">AI 智能推荐</div>
+                                  <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
+                                    <p>使用 Claude-3-Opus 大语言模型，通过深入分析您的具体需求，智能推荐最佳 GPU 配置。</p>
+                                    <div className="flex items-center space-x-2">
+                                      <span className="font-medium">AI 模型:</span>
+                                      <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">Claude-3-Opus</span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="font-semibold text-sm mb-2">基于规则的推荐</div>
+                                  <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
+                                    <p>根据预定义的硬件配置规则和经验公式，为您推荐适合的 GPU 方案。</p>
+                                    <div className="space-y-1">
+                                      <div className="flex items-center space-x-2">
+                                        <span className="font-medium">规则依据:</span>
+                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">模型大小</span>
+                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">批次大小</span>
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="font-medium">计算方法:</span>
+                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">线性估算</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -422,7 +547,7 @@ export default function GpuRecommender() {
                     </div>
                     <div className="absolute -right-2 -top-2 p-3 text-emerald-600/20 dark:text-emerald-400/20">
                       <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                        <path d="M19 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                     </div>
                   </div>

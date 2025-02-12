@@ -46,14 +46,23 @@ Your response must be a valid JSON object with these fields:
 
 export async function getAIGpuRecommendation(params: ModelParams): Promise<GpuRecommendation> {
   if (!OPENROUTER_API_KEY) {
-    console.warn('OpenRouter API key not found, falling back to rule-based recommendation');
-    return getGpuRecommendation(params);
+    return {
+      ...getGpuRecommendation(params),
+      isAIGenerated: false
+    };
   }
 
   try {
-    // 如果用户指定了首选 GPU，调整提示以强制使用该 GPU
-    const userPrompt = params.preferredGpu
-      ? `User has specifically requested to use ${params.preferredGpu} GPU. Please analyze if this GPU is suitable for their needs:
+    // 创建一个 Promise 竞争，一个是 AI 推荐，一个是 3 秒超时
+    const timeoutPromise = new Promise<GpuRecommendation>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('AI recommendation timeout'));
+      }, 3000);
+    });
+
+    const aiPromise = (async () => {
+      const userPrompt = params.preferredGpu
+        ? `User has specifically requested to use ${params.preferredGpu} GPU. Please analyze if this GPU is suitable for their needs:
 - Model name: ${params.modelName}
 - Model size: ${params.modelSize} parameters
 - Batch size: ${params.batchSize}
@@ -72,7 +81,7 @@ Please analyze the requirements and provide:
 5. Alternative GPU models only if ${params.preferredGpu} is determined to be unsuitable
    
 Your response should prioritize using ${params.preferredGpu} unless it is clearly insufficient for the requirements.`
-      : `Based on these parameters:
+        : `Based on these parameters:
 - Model name: ${params.modelName}
 - Model size: ${params.modelSize} parameters
 - Batch size: ${params.batchSize}
@@ -99,75 +108,55 @@ Please provide a detailed recommendation in Chinese, including:
 - Estimated system memory requirement
 - Alternative GPU models to consider`;
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://gpu-recommender.vercel.app',
-        'X-Title': 'GPU Recommender'
-      },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-chat:free',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-        top_p: 0.9,
-        response_format: { type: 'json_object' }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('OpenRouter API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'HTTP-Referer': 'https://github.com/deeperxh/gpu-recommender',
+          'X-Title': 'GPU Recommender',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3-opus',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ]
+        })
       });
-      throw new Error(`API Error: ${errorData?.message || response.statusText}`);
-    }
 
-    const result = await response.json();
-    console.log('API Response:', result);
+      if (!response.ok) {
+        throw new Error(`AI API responded with status ${response.status}`);
+      }
 
-    if (!result || !result.choices || !result.choices.length) {
-      console.error('Invalid API response format:', result);
-      throw new Error('Invalid API response format: missing choices');
-    }
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in AI response');
+      }
 
-    const content = result.choices[0].message?.content;
-    if (!content) {
-      console.error('Missing content in API response:', result.choices[0]);
-      throw new Error('Invalid API response format: missing content');
-    }
+      // 尝试解析 JSON 响应
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in AI response');
+      }
 
-    // 移除可能的 Markdown 代码块标记
-    const jsonContent = content.replace(/```json\n?|\n?```/g, '').trim();
-    console.log('Cleaned JSON content:', jsonContent);
+      const recommendation = JSON.parse(jsonMatch[0]);
+      if (!recommendation || !recommendation.model || !recommendation.quantity) {
+        throw new Error('Invalid AI recommendation format');
+      }
 
-    let recommendation;
-    try {
-      recommendation = JSON.parse(jsonContent);
-    } catch (error) {
-      console.error('Failed to parse recommendation JSON:', content);
-      throw new Error('Invalid JSON in API response');
-    }
+      return {
+        ...recommendation,
+        isAIGenerated: true
+      };
+    })();
 
-    // Validate the recommendation
-    if (!recommendation || !recommendation.model || !recommendation.quantity) {
-      throw new Error('Invalid AI recommendation format');
-    }
-    
-    return {
-      ...recommendation,
-      isAIGenerated: true
-    };
+    // 使用 Promise.race 实现超时处理
+    return await Promise.race([aiPromise, timeoutPromise]);
   } catch (error) {
     console.error('AI recommendation failed:', error);
-    // Fallback to rule-based recommendation
+    // 超时或其他错误时，回退到规则推荐
     return {
       ...getGpuRecommendation(params),
       isAIGenerated: false
