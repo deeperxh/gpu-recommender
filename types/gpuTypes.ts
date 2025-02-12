@@ -9,6 +9,7 @@ export interface ModelParams {
   memoryUsage: string
   mode: "inference" | "training"
   preferredGpu?: string
+  budget?: number  // Budget in CNY
 }
 
 export interface GpuRecommendation {
@@ -39,4 +40,3 @@ export interface CommonModel {
   name: string
   parameterCount: number
 }
-

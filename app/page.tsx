@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { getGpuRecommendation, GPU_OPTIONS, GPU_SPECS } from "../utils/gpuRecommendation"
-import type { GpuRecommendation, ModelParams } from "../types/gpuTypes"
-import { commonModels } from "../data/commonModels"
+import { getGpuRecommendation, GPU_OPTIONS, GPU_SPECS } from "@/utils/gpuRecommendation"
+import { getAIGpuRecommendation } from "@/utils/aiRecommendation"
+import type { GpuRecommendation, ModelParams } from "@/types/gpuTypes"
+import { commonModels } from "@/data/commonModels"
 
 export default function GpuRecommender() {
   const [modelParams, setModelParams] = useState<ModelParams>({
@@ -25,6 +26,8 @@ export default function GpuRecommender() {
     mode: "training",
   })
   const [recommendation, setRecommendation] = useState<GpuRecommendation | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [showResult, setShowResult] = useState(false)
 
   const handleInputChange = (name: string, value: string | number | boolean) => {
     setModelParams((prev) => ({
@@ -49,10 +52,31 @@ export default function GpuRecommender() {
     }
   }
 
-  useEffect(() => {
-    const result = getGpuRecommendation(modelParams)
-    setRecommendation(result)
-  }, [modelParams])
+  const handleSubmit = async () => {
+    setLoading(true)
+    console.log('API Key:', process.env.NEXT_PUBLIC_OPENROUTER_API_KEY); 
+    try {
+      const params: ModelParams = {
+        modelName: modelParams.modelName || "",  
+        modelSize: modelParams.modelSize.toString(),
+        batchSize: modelParams.batchSize.toString(),
+        precision: modelParams.precision,
+        sequenceLength: "512",  
+        trainingSteps: "1000",  
+        usesDistributedTraining: false,  
+        memoryUsage: modelParams.memoryUsage.toString(),
+        mode: modelParams.mode,
+        preferredGpu: modelParams.preferredGpu  
+      }
+      const result = await getAIGpuRecommendation(params)
+      setRecommendation(result)
+      setShowResult(true)
+    } catch (error) {
+      console.error('Error getting recommendation:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -322,10 +346,19 @@ export default function GpuRecommender() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="mt-6">
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
+                >
+                  {loading ? "生成推荐方案中..." : "获取 GPU 推荐"}
+                </button>
+              </div>
             </CardContent>
           </Card>
 
-          {recommendation && (
+          {showResult && recommendation && (
             <Card className="relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/30 pointer-events-none" />
               
@@ -361,7 +394,7 @@ export default function GpuRecommender() {
                     </div>
                     <div className="absolute -right-2 -top-2 p-3 text-blue-600/20 dark:text-blue-400/20">
                       <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 7h-1V2H6v5H5c-1.1 0-2 .9-2 2v12h18V9c0-1.1-.9-2-2-2zM8 4h8v3H8V4z"/>
+                        <path d="M19 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                     </div>
                   </div>
@@ -385,7 +418,7 @@ export default function GpuRecommender() {
                     </div>
                     <div className="absolute -right-2 -top-2 p-3 text-purple-600/20 dark:text-purple-400/20">
                       <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                     </div>
                   </div>
@@ -421,19 +454,7 @@ export default function GpuRecommender() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <svg className="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">推荐理由</h3>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{recommendation.reason}</p>
-                  </div>
-                </div>
-
-                {recommendation.alternativeModels.length > 0 && (
+                {recommendation && recommendation.alternativeModels && recommendation.alternativeModels.length > 0 && (
                   <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 p-4">
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
@@ -443,13 +464,27 @@ export default function GpuRecommender() {
                         <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">备选方案</h3>
                       </div>
                       <div className="space-y-2">
-                        {recommendation.alternativeModels.map((model) => (
+                        {recommendation.alternativeModels?.map((model) => (
                           <div key={model} className="flex items-center space-x-2 text-sm text-slate-600 dark:text-slate-300">
                             <span>•</span>
-                            <span>{model} - {GPU_SPECS[model].description}</span>
+                            <span>{model}{GPU_SPECS[model]?.description ? ` - ${GPU_SPECS[model].description}` : ''}</span>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {recommendation && (
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">推荐理由</h3>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{recommendation.reason}</p>
                     </div>
                   </div>
                 )}
@@ -461,10 +496,9 @@ export default function GpuRecommender() {
 
       <footer className="mt-12 py-6 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto px-4 text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>© {new Date().getFullYear()} AI 模型 GPU 推荐器</p>
+          <p> {new Date().getFullYear()} AI 模型 GPU 推荐器</p>
         </div>
       </footer>
     </div>
   )
 }
-
