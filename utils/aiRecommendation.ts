@@ -53,16 +53,22 @@ export async function getAIGpuRecommendation(params: ModelParams): Promise<GpuRe
   }
 
   try {
-    // 创建一个 Promise 竞争，一个是 AI 推荐，一个是 3 秒超时
     const timeoutPromise = new Promise<GpuRecommendation>((_, reject) => {
       setTimeout(() => {
         reject(new Error('AI recommendation timeout'));
-      }, 3000);
+      }, 20000);
     });
 
     const aiPromise = (async () => {
-      const userPrompt = params.preferredGpu
-        ? `User has specifically requested to use ${params.preferredGpu} GPU. Please analyze if this GPU is suitable for their needs:
+      const messages = [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: params.preferredGpu
+            ? `User has specifically requested to use ${params.preferredGpu} GPU. Please analyze if this GPU is suitable for their needs:
 - Model name: ${params.modelName}
 - Model size: ${params.modelSize} parameters
 - Batch size: ${params.batchSize}
@@ -78,10 +84,7 @@ Please analyze the requirements and provide:
 2. How many of these GPUs would be needed
 3. If multiple GPUs are needed, explain why
 4. Estimated VRAM and system memory requirements
-5. Alternative GPU models only if ${params.preferredGpu} is determined to be unsuitable
-   
-Your response should prioritize using ${params.preferredGpu} unless it is clearly insufficient for the requirements.`
-        : `Based on these parameters:
+5. Alternative GPU models only if ${params.preferredGpu} is determined to be unsuitable` : `Based on these parameters:
 - Model name: ${params.modelName}
 - Model size: ${params.modelSize} parameters
 - Batch size: ${params.batchSize}
@@ -106,22 +109,19 @@ Please provide a detailed recommendation in Chinese, including:
 - Reasoning for the recommendation
 - Estimated VRAM usage
 - Estimated system memory requirement
-- Alternative GPU models to consider`;
+- Alternative GPU models to consider`,
+        },
+      ];
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const response = await fetch('https://gpt.padeoe.com:9443/api/chat', {
         method: 'POST',
         headers: {
-          'HTTP-Referer': 'https://github.com/deeperxh/gpu-recommender',
-          'X-Title': 'GPU Recommender',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3-opus',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ]
+          model: 'deepseek-r1:14b',
+          messages,
+          stream: false
         })
       });
 
@@ -130,12 +130,11 @@ Please provide a detailed recommendation in Chinese, including:
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+      const content = data.message?.content;
       if (!content) {
         throw new Error('No content in AI response');
       }
 
-      // 尝试解析 JSON 响应
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in AI response');
@@ -152,11 +151,9 @@ Please provide a detailed recommendation in Chinese, including:
       };
     })();
 
-    // 使用 Promise.race 实现超时处理
     return await Promise.race([aiPromise, timeoutPromise]);
   } catch (error) {
     console.error('AI recommendation failed:', error);
-    // 超时或其他错误时，回退到规则推荐
     return {
       ...getGpuRecommendation(params),
       isAIGenerated: false

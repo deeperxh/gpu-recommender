@@ -87,7 +87,8 @@ export default function GpuRecommender() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <header className="relative overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30" />
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-50/50 via-transparent to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-950/30 pointer-events-none" />
+        
         <div className="relative z-10 container mx-auto px-4">
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="inline-flex items-center justify-center p-2 mb-4 rounded-full bg-blue-50 dark:bg-blue-950/50">
@@ -457,7 +458,7 @@ export default function GpuRecommender() {
                     </div>
                     <div>
                       <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                        {recommendation.model}
+                        推荐配置
                       </CardTitle>
                       <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center space-x-1">
                         <span>
@@ -491,10 +492,10 @@ export default function GpuRecommender() {
                                 <>
                                   <div className="font-semibold text-sm mb-2">AI 智能推荐</div>
                                   <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
-                                    <p>使用 Claude-3-Opus 大语言模型，通过深入分析您的具体需求，智能推荐最佳 GPU 配置。</p>
+                                    <p>使用大模型，通过分析您的需求，推荐最佳 GPU 配置。</p>
                                     <div className="flex items-center space-x-2">
                                       <span className="font-medium">AI 模型:</span>
-                                      <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">Claude-3-Opus</span>
+                                      <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">deepseek-r1:14b</span>
                                     </div>
                                   </div>
                                 </>
@@ -502,18 +503,8 @@ export default function GpuRecommender() {
                                 <>
                                   <div className="font-semibold text-sm mb-2">基于规则的推荐</div>
                                   <div className="text-xs text-slate-600 dark:text-slate-300 space-y-2">
-                                    <p>根据预定义的硬件配置规则和经验公式，为您推荐适合的 GPU 方案。</p>
-                                    <div className="space-y-1">
-                                      <div className="flex items-center space-x-2">
-                                        <span className="font-medium">规则依据:</span>
-                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">模型大小</span>
-                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">批次大小</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2">
-                                        <span className="font-medium">计算方法:</span>
-                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">线性估算</span>
-                                      </div>
-                                    </div>
+                                    <p>根据显存计算公式，推荐适合的 GPU 方案。</p>
+                                    <p>显存需求计算公式: 总显存 = 模型基础显存 + 激活值显存 + 优化器状态显存 + 额外内存使用。</p>
                                   </div>
                                 </>
                               )}
