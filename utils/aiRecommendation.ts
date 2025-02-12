@@ -27,15 +27,21 @@ Please follow these guidelines:
    - Consider distributed training requirements
    - Account for communication overhead
 
+5. Preferred GPU Handling:
+   - When a preferred GPU is specified, analyze its suitability first
+   - Only suggest alternatives if the preferred GPU is clearly insufficient
+   - Calculate how many of the preferred GPU would be needed
+   - Provide detailed reasoning if the preferred GPU is not recommended
+
 Your response must be a valid JSON object with these fields:
 {
-  "model": "string (GPU model name)",
+  "model": "string (GPU model name, must match the preferred GPU if specified and suitable)",
   "quantity": "number (number of GPUs needed)",
   "priceRange": "string (price range in CNY, formatted as '¥X,XXX - ¥X,XXX')",
-  "reason": "string (detailed recommendation reasoning in Chinese)",
+  "reason": "string (detailed recommendation reasoning in Chinese, including analysis of preferred GPU if specified)",
   "estimatedVram": "string (required VRAM, formatted as 'XX GB')",
   "estimatedMemory": "string (required system memory, formatted as 'XX GB')",
-  "alternativeModels": "string[] (array of alternative GPU model names)"
+  "alternativeModels": "string[] (array of alternative GPU model names, only include if preferred GPU is unsuitable)"
 }`;
 
 export async function getAIGpuRecommendation(params: ModelParams): Promise<GpuRecommendation> {
@@ -45,7 +51,9 @@ export async function getAIGpuRecommendation(params: ModelParams): Promise<GpuRe
   }
 
   try {
-    const userPrompt = `Based on these parameters:
+    // 如果用户指定了首选 GPU，调整提示以强制使用该 GPU
+    const userPrompt = params.preferredGpu
+      ? `User has specifically requested to use ${params.preferredGpu} GPU. Please analyze if this GPU is suitable for their needs:
 - Model name: ${params.modelName}
 - Model size: ${params.modelSize} parameters
 - Batch size: ${params.batchSize}
@@ -55,7 +63,25 @@ export async function getAIGpuRecommendation(params: ModelParams): Promise<GpuRe
 - Distributed training: ${params.usesDistributedTraining ? 'Yes' : 'No'}
 - Extra memory usage: ${params.memoryUsage} GB
 - Use case: ${params.mode}
-- Preferred GPU: ${params.preferredGpu || 'Not specified'}
+
+Please analyze the requirements and provide:
+1. Whether the requested ${params.preferredGpu} is suitable for these requirements
+2. How many of these GPUs would be needed
+3. If multiple GPUs are needed, explain why
+4. Estimated VRAM and system memory requirements
+5. Alternative GPU models only if ${params.preferredGpu} is determined to be unsuitable
+   
+Your response should prioritize using ${params.preferredGpu} unless it is clearly insufficient for the requirements.`
+      : `Based on these parameters:
+- Model name: ${params.modelName}
+- Model size: ${params.modelSize} parameters
+- Batch size: ${params.batchSize}
+- Precision: ${params.precision}
+- Sequence length: ${params.sequenceLength}
+- Training steps: ${params.trainingSteps}
+- Distributed training: ${params.usesDistributedTraining ? 'Yes' : 'No'}
+- Extra memory usage: ${params.memoryUsage} GB
+- Use case: ${params.mode}
 
 Please recommend suitable GPU specifications. Consider the following factors:
 1. For training tasks, recommend GPUs with more VRAM and compute power
@@ -63,7 +89,6 @@ Please recommend suitable GPU specifications. Consider the following factors:
 3. If distributed training is enabled, consider recommending multiple GPUs
 4. Consider the memory requirements for the given sequence length and batch size
 5. Take into account the precision mode's impact on memory usage
-6. If a preferred GPU is specified, include it in the alternatives if not chosen as the main recommendation
 
 Please provide a detailed recommendation in Chinese, including:
 - The recommended GPU model
@@ -136,10 +161,16 @@ Please provide a detailed recommendation in Chinese, including:
       throw new Error('Invalid AI recommendation format');
     }
     
-    return recommendation;
+    return {
+      ...recommendation,
+      isAIGenerated: true
+    };
   } catch (error) {
     console.error('AI recommendation failed:', error);
     // Fallback to rule-based recommendation
-    return getGpuRecommendation(params);
+    return {
+      ...getGpuRecommendation(params),
+      isAIGenerated: false
+    };
   }
 }

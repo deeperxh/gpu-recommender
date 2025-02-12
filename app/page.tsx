@@ -360,27 +360,43 @@ export default function GpuRecommender() {
 
           {showResult && recommendation && (
             <Card className="relative overflow-hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/30 pointer-events-none" />
-              
+              {/* 推荐来源标签 */}
+              <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-semibold ${
+                recommendation.isAIGenerated 
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' 
+                  : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+              }`}>
+                {recommendation.isAIGenerated ? 'AI 生成' : '规则生成'}
+              </div>
+
               <CardHeader className="relative space-y-1 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50">
-                    <svg 
-                      className="w-5 h-5 text-emerald-600 dark:text-emerald-400" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                      推荐方案
-                    </CardTitle>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      基于您的需求，我们为您推荐以下配置
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/50">
+                      <svg 
+                        className="w-5 h-5 text-blue-600 dark:text-blue-400" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
+                        {recommendation.model}
+                      </CardTitle>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {recommendation.isAIGenerated 
+                          ? 'AI 智能推荐' 
+                          : '基于规则的推荐'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -406,7 +422,7 @@ export default function GpuRecommender() {
                     </div>
                     <div className="absolute -right-2 -top-2 p-3 text-emerald-600/20 dark:text-emerald-400/20">
                       <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
                       </svg>
                     </div>
                   </div>
@@ -480,7 +496,7 @@ export default function GpuRecommender() {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
                         <svg className="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">推荐理由</h3>
                       </div>

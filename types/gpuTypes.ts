@@ -13,13 +13,14 @@ export interface ModelParams {
 }
 
 export interface GpuRecommendation {
-  model: string
-  quantity: number
-  priceRange: string
-  reason: string
-  estimatedVram: string
-  estimatedMemory: string
-  alternativeModels: string[]
+  model: string;
+  quantity: number;
+  priceRange: string;
+  reason: string;
+  estimatedVram: string;
+  estimatedMemory: string;
+  alternativeModels: string[];
+  isAIGenerated: boolean;
 }
 
 export interface GpuSpecs {
